@@ -1,5 +1,8 @@
-# Custom
-*.fish
+activate.fish
+.vscode
+.pio
+.pioenvs
+.piolibdeps
 
 # Prerequisites
 *.d
