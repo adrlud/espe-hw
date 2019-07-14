@@ -1,3 +1,6 @@
+# Custom
+*.fish
+
 # Prerequisites
 *.d
 
