@@ -10,7 +10,7 @@ const int ledPin = LED_BUILTIN;
 const long interval = 1000;
 const long httpInterval = 500;
 
-const String DEVICES_PATH = "http://192.168.0.9:8000/devices";
+const String UPLOAD_PATH = "http://192.168.0.9:8000/device/1";
 
 // Variables
 int ledState = LOW;
@@ -23,6 +23,8 @@ const int LOADCELL_DOUT_PIN = D6;
 const int LOADCELL_SCK_PIN = D5;
 
 float calibration_factor = 25; 
+
+
 
 void setup () {
     pinMode(ledPin, OUTPUT);
@@ -48,12 +50,18 @@ int switchLedState(int current) {
     }
 }
 
-void createMeasurement(String& output, long reading) {
-    const size_t capacity = JSON_OBJECT_SIZE(2);
+void createMeasurement(String& output, double reading) {
+    int arrayLength = 1;
+    
+    const size_t capacity = JSON_ARRAY_SIZE(arrayLength) + JSON_OBJECT_SIZE(1) + arrayLength * JSON_OBJECT_SIZE(2);
     DynamicJsonDocument doc(capacity);
 
-    doc["device_id"] = 1;
-    doc["reading"] = reading;
+    JsonArray readings = doc.createNestedArray("readings");
+
+    JsonObject readings_0 = readings.createNestedObject();
+    readings_0["reading"] = reading;
+    readings_0["timedelta"] = 0;
+
     serializeJson(doc, output);
 }
 
@@ -64,19 +72,22 @@ void loop () {
     // ----------------------
     // HTTP
     // ----------------------
+    
+
     if (currentMillis - previousMillis >= httpInterval) {
-        String output;
+        String payload;
         float reading = loadcell.get_units(10);
-        createMeasurement(output, reading);
-        Serial.println(output);
+        createMeasurement(payload, reading);
+        Serial.println(payload);
 
         Serial.println("Starting http request");
-        if (false) {
-        // if (WiFi.status() == WL_CONNECTED) {
+        if (WiFi.status() == WL_CONNECTED) {
             WiFiClient client;
             HTTPClient http;
-            http.begin(client, DEVICES_PATH);
-            int httpCode = http.GET();
+            http.begin(client, UPLOAD_PATH);
+            http.addHeader("Content-Type", "application/json");
+
+            int httpCode = http.POST(payload);
 
             if (httpCode > 0) {
                 String payload = http.getString();
